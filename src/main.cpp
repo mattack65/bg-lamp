@@ -1,18 +1,81 @@
 #include <Arduino.h>
+#include <FastLED.h>
 
-// put function declarations here:
-int myFunction(int, int);
+static constexpr uint8_t LED_PIN = 18;
+static constexpr int NUM_LEDS = 100;
+static constexpr uint8_t POT_PIN = 34;
+static constexpr uint8_t BUTTON_PIN = 19;
+
+CRGB leds[NUM_LEDS];
+
+enum class LampMode {
+  BgMode,
+  WhiteMode
+};
+
+LampMode mode = LampMode::BgMode;
+
+void showColor(const CRGB& color) {
+  fill_solid(leds, NUM_LEDS, color);
+  FastLED.show();
+}
+
+uint8_t readBrightness() {
+  int raw = analogRead(POT_PIN);
+  raw = constrain(raw, 0, 4095);
+  return map(raw, 0, 4095, 0, 255);
+}
+
+void handleButton() {
+  static bool lastButtonState = HIGH;
+  static unsigned long lastChangeTime = 0;
+  const unsigned long debounceMs = 30;
+
+  bool currentState = digitalRead(BUTTON_PIN);
+
+  if (currentState != lastButtonState) {
+    lastChangeTime = millis();
+  }
+
+  if ((millis() - lastChangeTime) > debounceMs) {
+    static bool stableState = HIGH;
+
+    if (currentState != stableState) {
+      stableState = currentState;
+
+      if (stableState == LOW) {
+        mode = (mode == LampMode::BgMode) ? LampMode::WhiteMode : LampMode::BgMode;
+        Serial.printf("Mode changed to: %s\n",
+                      (mode == LampMode::BgMode) ? "BgMode" : "WhiteMode");
+      }
+    }
+  }
+
+  lastButtonState = currentState;
+}
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+
+  pinMode(POT_PIN, INPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  showColor(CRGB::Black);
+  delay(300);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+  handleButton();
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  uint8_t brightness = readBrightness();
+  FastLED.setBrightness(brightness);
+
+  if (mode == LampMode::BgMode) {
+    showColor(CRGB::Red);    // placeholder for later BG color
+  } else {
+    showColor(CRGB::White);
+  }
+
+  delay(20);
 }
