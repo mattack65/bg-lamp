@@ -1,81 +1,99 @@
 #include <Arduino.h>
-#include <FastLED.h>
+#include <WiFi.h>
+#include "Dexcom_follow.h"
+#include "secrets.h"
 
-static constexpr uint8_t LED_PIN = 18;
-static constexpr int NUM_LEDS = 100;
-static constexpr uint8_t POT_PIN = 34;
-static constexpr uint8_t BUTTON_PIN = 19;
+Follower follower(true, DEXCOM_USER, DEXCOM_PASS);   // true = outside US
 
-CRGB leds[NUM_LEDS];
+void connectWifi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-enum class LampMode {
-  BgMode,
-  WhiteMode
-};
-
-LampMode mode = LampMode::BgMode;
-
-void showColor(const CRGB& color) {
-  fill_solid(leds, NUM_LEDS, color);
-  FastLED.show();
-}
-
-uint8_t readBrightness() {
-  int raw = analogRead(POT_PIN);
-  raw = constrain(raw, 0, 4095);
-  return map(raw, 0, 4095, 0, 255);
-}
-
-void handleButton() {
-  static bool lastButtonState = HIGH;
-  static unsigned long lastChangeTime = 0;
-  const unsigned long debounceMs = 30;
-
-  bool currentState = digitalRead(BUTTON_PIN);
-
-  if (currentState != lastButtonState) {
-    lastChangeTime = millis();
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
+  Serial.println();
+  Serial.println("WiFi connected");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
 
-  if ((millis() - lastChangeTime) > debounceMs) {
-    static bool stableState = HIGH;
+String formatTimestamp(unsigned long ts)
+{
+    time_t raw = (time_t)ts;
+    struct tm *timeinfo = localtime(&raw);
 
-    if (currentState != stableState) {
-      stableState = currentState;
-
-      if (stableState == LOW) {
-        mode = (mode == LampMode::BgMode) ? LampMode::WhiteMode : LampMode::BgMode;
-        Serial.printf("Mode changed to: %s\n",
-                      (mode == LampMode::BgMode) ? "BgMode" : "WhiteMode");
-      }
+    if (!timeinfo) {
+        return "invalid time";
     }
-  }
 
-  lastButtonState = currentState;
+    char buffer[32];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    return String(buffer);
 }
+
+void printReading() {
+  Serial.print("BG: ");
+  Serial.print(follower.GlucoseNow.mg_dl);
+  Serial.print(" mg/dL   ");
+
+  Serial.print(follower.GlucoseNow.mmol_l, 1);
+  Serial.print(" mmol/L   ");
+
+  Serial.print("Trend: ");
+  Serial.print(follower.GlucoseNow.trend_description);
+  Serial.print(" ");
+  Serial.print(follower.GlucoseNow.trend_Symbol);
+  Serial.print("   ");
+
+  Serial.print("Timestamp: ");
+  Serial.println(formatTimestamp(follower.GlucoseNow.timestamp));
+}
+
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
 
-  pinMode(POT_PIN, INPUT);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  connectWifi();
 
-  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-  showColor(CRGB::Black);
-  delay(300);
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
+  tzset();
+
+  Serial.println("Requesting Dexcom session...");
+  if (!follower.getNewSessionID()) {
+    Serial.println("Failed to get Dexcom session ID");
+    return;
+  }
+
+  Serial.println("Requesting latest glucose...");
+  if (!follower.GlucoseLevelsNow()) {
+    Serial.println("Failed to get glucose reading");
+    return;
+  }
+
+  printReading();
 }
 
 void loop() {
-  handleButton();
+  static unsigned long lastPoll = 0;
+  const unsigned long pollMs = 60000;   // 1 minute
 
-  uint8_t brightness = readBrightness();
-  FastLED.setBrightness(brightness);
+  if (millis() - lastPoll >= pollMs) {
+    lastPoll = millis();
 
-  if (mode == LampMode::BgMode) {
-    showColor(CRGB::Red);    // placeholder for later BG color
-  } else {
-    showColor(CRGB::White);
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi lost, reconnecting...");
+      connectWifi();
+    }
+
+    if (follower.GlucoseLevelsNow()) {
+      printReading();
+    } else {
+      Serial.println("Reading failed");
+    }
   }
-
-  delay(20);
 }

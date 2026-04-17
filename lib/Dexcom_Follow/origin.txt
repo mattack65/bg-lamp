@@ -1,0 +1,9 @@
+Copied from:
+https://github.com/Hynesman/Dexcom_Follow
+
+Files:
+- Dexcom_follow.h
+- Dexcom_follow.cpp
+
+Copied on:
+2026-04-18
