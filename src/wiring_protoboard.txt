@@ -1,0 +1,15 @@
+Wiring:
+
+push button blue: PIN 19
+push button black: GND
+
+resistor: PIN 18 to green Din of LED strip
+
+pot meter left white: GND
+pot meter right red: 3V3
+pot meter orange middle: Pin 34
+
+power supply GND white to GND
+
+
+later: power supply 5V to Vin

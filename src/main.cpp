@@ -89,8 +89,14 @@ uint8_t readBrightness() {
 
   float x = raw / 4095.0f;
   float y = powf(x, 2.2f);
+  // here we can limit the max brightness
+  // float max_brightness = 255.0f;
+  float max_brightness = 250.0f; // limit the power consumption to 3 A max
+  uint8_t brightness = (uint8_t)(y * max_brightness + 0.5f);
 
-  return (uint8_t)(y * 255.0f + 0.5f);
+  // Serial.print("Brightness set to: ");
+  // Serial.println(brightness);
+  return brightness;
 }
 
 CRGB interpolateColor(const CRGB& a, const CRGB& b, float t) {
@@ -201,24 +207,23 @@ void handleButton() {
 void runStartupTestMode() {
   static unsigned long lastStepTime = 0;
   static int testIndex = 0;
-  const unsigned long stepMs = 2500;
+  static CRGB currentTestColor = CRGB::Black;
+  const unsigned long stepMs = 1500;
 
   if (millis() - lastStepTime >= stepMs) {
     lastStepTime = millis();
 
     float mmol = testValues[testIndex];
-    CRGB color = colorForBg(mmol);
-
-    showColor(color);
+    currentTestColor = colorForBg(mmol);
 
     Serial.print("Test mode: ");
     Serial.print(mmol, 1);
     Serial.print(" mmol/L -> RGB(");
-    Serial.print(color.r);
+    Serial.print(currentTestColor.r);
     Serial.print(", ");
-    Serial.print(color.g);
+    Serial.print(currentTestColor.g);
     Serial.print(", ");
-    Serial.print(color.b);
+    Serial.print(currentTestColor.b);
     Serial.println(")");
 
     testIndex++;
@@ -227,6 +232,8 @@ void runStartupTestMode() {
       testIndex = 0;
     }
   }
+
+  showColor(currentTestColor);
 }
 
 void setup() {
