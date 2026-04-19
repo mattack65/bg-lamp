@@ -224,7 +224,7 @@ In PlatformIO:
 
 ## Known future improvements
 
-- add optional LCD display
+- add optional LCD display (if wanted)
 - smarter polling based on Dexcom timestamps
 - stale-data indication
 - alarm behavior for dangerous lows
@@ -232,6 +232,7 @@ In PlatformIO:
 - cleanup and modularization
 - improve comments and documentation
 - possibly submit Dexcom fixes upstream
+- optimize the update of the LED colors to only when actually needed, not mindlessly every 20 ms
 
 ## Disclaimer
 
