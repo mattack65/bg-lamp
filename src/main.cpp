@@ -84,20 +84,51 @@ void connectWifi() {
 }
 
 uint8_t readBrightness() {
+  const int samples = 8;
+  long sum = 0;
+
+  for (int i = 0; i < samples; i++) {
+    sum += analogRead(POT_PIN);
+    delayMicroseconds(200);
+  }
+
+  int raw = sum / samples;
+  raw = constrain(raw, 0, 4095);
+
+  float x = raw / 4095.0f;
+  float y = powf(x, 1.0f);
+
+  uint8_t newBrightness = (uint8_t)(y * 255.0f + 0.5f);
+
+  static uint8_t stableBrightness = 0;
+
+  if (abs((int)newBrightness - (int)stableBrightness) >= 2) {
+    stableBrightness = newBrightness;
+  }
+
+  // Serial.print("Brightness set to: ");
+  // Serial.println(stableBrightness);
+
+  return stableBrightness;
+}
+
+/*
+uint8_t readBrightness() {
   int raw = analogRead(POT_PIN);
   raw = constrain(raw, 0, 4095);
 
   float x = raw / 4095.0f;
-  float y = powf(x, 2.2f);
+  float y = powf(x, 1.0f);
   // here we can limit the max brightness
   // float max_brightness = 255.0f;
   float max_brightness = 255.0f; // limit the power consumption to 3 A max
   uint8_t brightness = (uint8_t)(y * max_brightness + 0.5f);
 
-  // Serial.print("Brightness set to: ");
-  // Serial.println(brightness);
+  Serial.print("Brightness set to: ");
+  Serial.println(brightness);
   return brightness;
 }
+*/
 
 CRGB interpolateColor(const CRGB& a, const CRGB& b, float t) {
   t = constrain(t, 0.0f, 1.0f);
@@ -204,6 +235,52 @@ void handleButton() {
   lastButtonState = currentState;
 }
 
+CRGB scaleColor(const CRGB& color, uint8_t brightness) {
+  CRGB c = color;
+  c.nscale8_video(brightness);
+  return c;
+}
+
+void showDistributedColor(const CRGB& baseColor, uint8_t logicalBrightness) {
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+
+  if (logicalBrightness == 0) {
+    FastLED.setBrightness(255);   // no extra global scaling needed
+    FastLED.show();
+    return;
+  }
+
+  constexpr uint8_t SPATIAL_LED_BRIGHTNESS = 6;
+   
+  if (logicalBrightness <= NUM_LEDS) {
+    // Spatial dimming mode:
+    // light exactly logicalBrightness LEDs, evenly distributed,
+    // each at a stable low brightness of 4
+    
+    CRGB dimColor = scaleColor(baseColor, SPATIAL_LED_BRIGHTNESS);
+
+    int activeCount = logicalBrightness;
+
+    for (int i = 0; i < activeCount; i++) {
+      int idx = (i * NUM_LEDS) / activeCount;
+      if (idx >= NUM_LEDS) idx = NUM_LEDS - 1;
+      leds[idx] = dimColor;
+    }
+
+    FastLED.setBrightness(255);   // already scaled into the pixel values
+    FastLED.show();
+    return;
+  }
+
+  // Normal full-strip brightness mode:
+  // all LEDs on, brightness rises from 6 to 255
+  uint8_t fullBrightness = map(logicalBrightness, NUM_LEDS + 1, 255, SPATIAL_LED_BRIGHTNESS, 255);
+
+  fill_solid(leds, NUM_LEDS, baseColor);
+  FastLED.setBrightness(fullBrightness);
+  FastLED.show();
+}
+
 void runStartupTestMode() {
   static unsigned long lastStepTime = 0;
   static int testIndex = 0;
@@ -233,8 +310,11 @@ void runStartupTestMode() {
     }
   }
 
-  showColor(currentTestColor);
+  uint8_t brightness = readBrightness();
+  showDistributedColor(currentTestColor, brightness);
 }
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -267,17 +347,16 @@ void loop() {
   }
 
   uint8_t brightness = readBrightness();
-  FastLED.setBrightness(brightness);
 
   if (mode == LampMode::StartupTestMode) {
     runStartupTestMode();
   } else if (mode == LampMode::WhiteMode) {
-    showColor(CRGB::White);
+    showDistributedColor(CRGB::White, brightness);
   } else {
     if (bg.valid) {
-      showColor(colorForBg(bg.mmol));
+      showDistributedColor(colorForBg(bg.mmol), brightness);
     } else {
-      showColor(CRGB::Black);
+      showDistributedColor(CRGB::Black, 0);
     }
   }
 
