@@ -1,0 +1,69 @@
+BG-LAMP TODO
+
+HARDWARE / ENCLOSURE
+- When the 6 A brick arrives, switch from the temporary 3 A USB supply to the final PSU
+- Decide later whether to add the LCD screen at all
+
+LCD / DISPLAY
+- Possibly add the small LCD screen later
+- Decide display position in the external enclosure
+- If added, show:
+  - BG value in mmol/L
+  - trend arrow
+  - reading age / stale-data warning
+  - current mode
+
+SOFTWARE CLEANUP / STRUCTURE
+- Add comments later in a final cleanup pass
+- Possibly split the code more cleanly into modules/files
+- Remove or reduce debug serial prints later
+- Maybe add a short README for the repo
+- Possibly turn the patched Dexcom code into a cleaner DexcomClient module
+
+DEXCOM POLLING / LOGIC
+- Keep polling at 1 minute for now
+- Later consider smarter polling:
+  - based on last Dexcom timestamp + 5 minutes + small margin
+  - fallback to faster retry on failure/stale data
+- Possibly add stale-data handling / special display state
+- Later maybe add alarm behavior for dangerous lows
+
+COLOR MAPPING / LAMP BEHAVIOR
+- Refine the color map further once the lamp is in its real enclosure/diffuser
+- Possibly add alarm behavior later, e.g. flashing bright red below a dangerous threshold
+- Test final perceived colors in the real lamp body, not just on the bench
+
+BRIGHTNESS / DIMMING
+- Keep current brightness behavior for now
+- Later reconsider the low-end hue shift
+- Possible future fix: hybrid dimming
+  - keep lit LEDs at healthier brightness
+  - dim further by lighting fewer LEDs
+  - e.g. every 10th LED, 2/10 LEDs, etc.
+- Re-evaluate brightness behavior only after seeing the final lamp with diffuser
+
+TEST MODE / UI BEHAVIOR
+- Current startup test mode works
+- Later possible refinement: auto-exit test mode after a timeout
+- Later optimize refresh behavior so LEDs are only updated when something changed
+- Current repeated showColor() calls are okay, but could be optimized later
+
+GIT / GITHUB
+- Continue committing normal checkpoints with:
+  - git status
+  - git add .
+  - git commit -m "..."
+  - git push
+- Later prepare a proper issue / PR for the original Dexcom_Follow library with the fixes
+
+UPSTREAM DEXCOM_FOLLOW CONTRIBUTION
+- Write a GitHub issue describing:
+  - old login flow returning zero session ID
+  - need for updated auth flow
+- Possibly open a PR with these fixes:
+  - AuthenticatePublisherAccount + LoginPublisherAccountById
+  - corrected app ID for US/OUS
+  - invalid zero-session detection
+  - timestamp parsing fix
+  - trend_description lifetime fix
+

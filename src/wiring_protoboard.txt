@@ -13,3 +13,7 @@ power supply GND white to GND
 
 
 later: power supply 5V to Vin
+
+power supply 5V to LED strip 5V
+power supply GND to LED GND
+capacitor between GND and 5V LED-Strip

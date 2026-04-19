@@ -91,7 +91,7 @@ uint8_t readBrightness() {
   float y = powf(x, 2.2f);
   // here we can limit the max brightness
   // float max_brightness = 255.0f;
-  float max_brightness = 250.0f; // limit the power consumption to 3 A max
+  float max_brightness = 255.0f; // limit the power consumption to 3 A max
   uint8_t brightness = (uint8_t)(y * max_brightness + 0.5f);
 
   // Serial.print("Brightness set to: ");

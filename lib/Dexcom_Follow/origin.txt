@@ -7,3 +7,7 @@ Files:
 
 Copied on:
 2026-04-18
+
+There were a few problems with outdated usage, so the library stopped working.
+ChatGPT made a few fixes and now it works again
+
