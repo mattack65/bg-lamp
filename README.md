@@ -70,6 +70,17 @@ Current prototype hardware:
 
 The button uses the ESP32 internal pull-up.
 
+### Final power wiring
+- 5 V supply -> LED strip 5 V
+- 5 V supply -> ESP32 VIN / 5V input
+- GND supply -> LED strip GND
+- GND supply -> ESP32 GND
+
+All grounds must be common.
+
+### Development setup
+During development, the ESP32 can be powered from USB while the LED strip is powered separately from a 5 V supply, as long as grounds are connected together.
+
 ## Important power note
 
 Do **not** power a long LED strip through thin Dupont wires.
@@ -114,6 +125,19 @@ Main external libraries:
 - ArduinoJson
 
 The Dexcom code is based on a patched local copy of `Dexcom_Follow`, because the original version needed fixes to work with the current Dexcom Share login flow.
+
+## Dexcom follower code
+
+The Dexcom code in this project is based on a patched local copy of:
+
+`https://github.com/Hynesman/Dexcom_Follow`
+
+The locally used files are:
+
+- `lib/Dexcom_Follow/Dexcom_follow.h`
+- `lib/Dexcom_Follow/Dexcom_follow.cpp`
+
+The original library needed a few fixes to work with the current Dexcom Share login flow.
 
 ## Dexcom note
 
@@ -216,3 +240,27 @@ This is a personal DIY project.
 It is intended as an ambient visual indicator only.
 
 Always rely on the official Dexcom app/device and proper medical guidance for real diabetes management.
+
+## Prototype photos
+
+### Lamp
+<img src="images/lamp_prototype.jpg" alt="Lamp prototype" width="400">
+
+### Electronics / protoboard
+<img src="images/breadboard.jpg" alt="Protoboard wiring" width="400">
+
+<img src="images/protoboard1.jpg" alt="Protoboard wiring" width="400">
+
+<img src="images/protoboard2.jpg" alt="Protoboard wiring" width="400">
+
+<img src="images/protoboard3.jpg" alt="Protoboard wiring" width="400">
+
+<img src="images/protoboard4.jpg" alt="Protoboard wiring" width="400">
+
+
+### LEDs inside the diffusor
+<img src="images/leds.jpg" alt="LED-Strip inside the diffusor" width="400">
+
+### Enclosure
+<img src="images/enclosure.jpg" alt="3D-printed enclosure" width="400">
+
