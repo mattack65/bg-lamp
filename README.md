@@ -139,13 +139,15 @@ The locally used files are:
 
 The original library needed a few fixes to work with the current Dexcom Share login flow.
 
-## Dexcom note
+## Dexcom data source
 
-This project uses Dexcom Share / Follow style access and is a hobby project.
+To get near-real-time glucose values, this project uses the unofficial Dexcom Share / Follow API path rather than Dexcom’s official developer API.
 
-It is **not** a medical device.
+The official API appears to provide delayed data, which makes it unsuitable for a live BG lamp.
 
-Do not use this lamp for treatment decisions.
+Because this Share / Follow access is unofficial, it may break or disappear at any time.
+
+This project is for hobby / ambient display use only and not for treatment decisions.
 
 ## Current behavior
 
