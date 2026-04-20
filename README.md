@@ -262,6 +262,6 @@ Always rely on the official Dexcom app/device and proper medical guidance for re
 ### LEDs inside the diffusor
 <img src="images/leds.jpg" alt="LED-Strip inside the diffusor" width="400">
 
-### Enclosure
+### 3D-printed Enclosure
 <img src="images/enclosure.jpg" alt="3D-printed enclosure" width="400">
 

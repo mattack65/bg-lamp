@@ -112,23 +112,6 @@ uint8_t readBrightness() {
   return stableBrightness;
 }
 
-/*
-uint8_t readBrightness() {
-  int raw = analogRead(POT_PIN);
-  raw = constrain(raw, 0, 4095);
-
-  float x = raw / 4095.0f;
-  float y = powf(x, 1.0f);
-  // here we can limit the max brightness
-  // float max_brightness = 255.0f;
-  float max_brightness = 255.0f; // limit the power consumption to 3 A max
-  uint8_t brightness = (uint8_t)(y * max_brightness + 0.5f);
-
-  Serial.print("Brightness set to: ");
-  Serial.println(brightness);
-  return brightness;
-}
-*/
 
 CRGB interpolateColor(const CRGB& a, const CRGB& b, float t) {
   t = constrain(t, 0.0f, 1.0f);
@@ -170,6 +153,7 @@ void showColor(const CRGB& color) {
 }
 
 bool updateDexcomReading() {
+  bg.valid = false;
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi lost, reconnecting...");
     connectWifi();
