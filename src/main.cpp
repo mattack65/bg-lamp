@@ -214,30 +214,85 @@ void showColor(const CRGB& color) {
 //
 // The rest of the lamp logic uses bg.valid to decide whether BG mode
 // should show a real color or go dark.
+
+// Recovery state for Dexcom auth/session handling.
+// consecutiveDexcomFailures counts back-to-back failed update attempts.
+// lastSessionRefreshMs tracks when we last requested a fresh Dexcom session.
+static uint8_t consecutiveDexcomFailures = 0;
+static unsigned long lastSessionRefreshMs = 0;
+
+// Refresh the cached Dexcom reading with robust session recovery.
+//
+// Behavior:
+// - Keeps "black on stale data" semantics by setting bg.valid=false at start.
+// - Reconnects Wi-Fi if needed.
+// - Tries a glucose read with current session first.
+// - If that fails, forces a new Dexcom session and retries once immediately.
+// - After repeated failures, proactively refreshes session before reading.
+// - Optionally refreshes session by age to avoid long-lived stale tokens.
+//
+// Returns:
+// - true  = fresh reading fetched and cached in bg
+// - false = no fresh reading (caller may show black/stale state)
 bool updateDexcomReading() {
   bg.valid = false;
+
+  // Tunables for resilience:
+  static constexpr uint8_t FORCE_REAUTH_AFTER_FAILURES = 3;
+  static constexpr unsigned long SESSION_REFRESH_INTERVAL_MS = 30UL * 60UL * 1000UL; // 30 min
+
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi lost, reconnecting...");
     connectWifi();
   }
 
-  if (!follower.SessionIDnotDefault()) {
-    Serial.println("Requesting Dexcom session...");
-    if (!follower.getNewSessionID()) {
+  // Proactive refresh: even a "non-default" session can expire server-side.
+  bool sessionTooOld = (millis() - lastSessionRefreshMs) >= SESSION_REFRESH_INTERVAL_MS;
+  bool forceReauthNow = (consecutiveDexcomFailures >= FORCE_REAUTH_AFTER_FAILURES) || sessionTooOld;
+
+  if (forceReauthNow) {
+    Serial.println("Proactive Dexcom session refresh...");
+    if (follower.getNewSessionID()) {
+      lastSessionRefreshMs = millis();
+    } else {
+      Serial.println("Failed proactive Dexcom session refresh");
+    }
+  } else if (!follower.SessionIDnotDefault()) {
+    Serial.println("No Dexcom session, requesting one...");
+    if (follower.getNewSessionID()) {
+      lastSessionRefreshMs = millis();
+    } else {
       Serial.println("Failed to get Dexcom session");
+      consecutiveDexcomFailures++;
       return false;
     }
   }
 
+  // Attempt 1: read with current (or freshly refreshed) session.
   if (!follower.GlucoseLevelsNow()) {
-    Serial.println("Failed to get glucose reading");
-    return false;
+    Serial.println("Dexcom glucose read failed, forcing re-login and retrying...");
+
+    // Force a fresh session and retry once immediately.
+    if (!follower.getNewSessionID()) {
+      Serial.println("Failed to refresh Dexcom session after read failure");
+      consecutiveDexcomFailures++;
+      return false;
+    }
+    lastSessionRefreshMs = millis();
+
+    if (!follower.GlucoseLevelsNow()) {
+      Serial.println("Dexcom glucose read still failing after session refresh");
+      consecutiveDexcomFailures++;
+      return false;
+    }
   }
 
+  // Success path: cache reading and clear failure streak.
   bg.valid = true;
   bg.mmol = follower.GlucoseNow.mmol_l;
   bg.trend = follower.GlucoseNow.trend_description;
   bg.timestamp = follower.GlucoseNow.timestamp;
+  consecutiveDexcomFailures = 0;
 
   Serial.print("BG updated: ");
   Serial.print(bg.mmol, 1);
@@ -248,6 +303,7 @@ bool updateDexcomReading() {
 
   return true;
 }
+
 
 // Handle the pushbutton with debounce.
 //
