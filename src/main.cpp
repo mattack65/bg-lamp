@@ -4,6 +4,9 @@
 #include <time.h>
 #include <math.h>
 
+#include <WiFiMulti.h>
+WiFiMulti wifiMulti;
+
 #include "Dexcom_follow.h"
 #include "secrets.h"
 
@@ -103,18 +106,36 @@ String formatTimestamp(unsigned long ts) {
 // This function blocks until a connection has been established.
 void connectWifi() {
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
+  static bool wifiListInitialized = false;
+  if (!wifiListInitialized) {
+    // Primary network (required, existing README format)
+    wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
+
+    // Optional secondary network (only if defined in secrets.h)
+    #ifdef WIFI2_SSID
+    #ifdef WIFI2_PASS
+      wifiMulti.addAP(WIFI2_SSID, WIFI2_PASS);
+    #endif
+    #endif
+
+    wifiListInitialized = true;
+  }
+
+  Serial.print("Connecting to known WiFi");
+  while (wifiMulti.run() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+
   Serial.println();
   Serial.println("WiFi connected");
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
 }
+
 
 // Read the brightness potentiometer and return a stable logical
 // brightness value in the range 0..255.
