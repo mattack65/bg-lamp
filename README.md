@@ -201,11 +201,18 @@ with this content:
 
     #pragma once
 
-    constexpr const char* WIFI_SSID = "your_wifi";
-    constexpr const char* WIFI_PASS = "your_wifi_password";
+    #define WIFI_SSID "my_primary_wifi"
+    #define WIFI_PASS "my_password"
 
-    constexpr const char* DEXCOM_USER = "your_dexcom_username";
-    constexpr const char* DEXCOM_PASS = "your_dexcom_password";
+    // Optional second WiFi
+    #define WIFI2_SSID "my_backup_wifi"
+    #define WIFI2_PASS "my_backup_password"
+
+    #define DEXCOM_USER "your_dexcom_username"
+    #define DEXCOM_PASS "your_dexcom_password"
+
+
+WIFI2_SSID and WIFI2_PASS are optional. If they are not defined, only the primary Wi-Fi network will be used.
 
 Make sure this file stays in `.gitignore`.
 
